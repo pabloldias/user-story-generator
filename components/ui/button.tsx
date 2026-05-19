@@ -9,12 +9,20 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        // Brand primary: Neon Mint bg, Black text
+        default:
+          "bg-brand-neon-mint text-brand-black hover:bg-brand-neon-mint/85 active:bg-brand-neon-mint/75",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline:
+          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        // Brand secondary: Aqua Breeze bg, Squid Ink text
+        secondary:
+          "bg-brand-aqua-breeze text-brand-squid-ink hover:bg-brand-aqua-breeze/80",
+        ghost:
+          "hover:bg-accent hover:text-accent-foreground",
+        link:
+          "text-brand-neon-mint underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4 py-2",

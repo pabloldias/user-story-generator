@@ -2,67 +2,94 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * ─── Brand Palette ──────────────────────────────────────────────────────────
+ *
+ *  Primary
+ *    Neon Mint      #00e9c2   hsl(170 100% 46%)
+ *    Black          #000000   hsl(0 0% 0%)
+ *    White          #ffffff   hsl(0 0% 100%)
+ *
+ *  Secondary
+ *    Aqua Breeze    #bbf7e8   hsl(165 79% 85%)
+ *    Squid Ink      #282d30   hsl(203 9% 17%)
+ *    Upslope Fog    #f3f6f9   hsl(209 33% 97%)
+ *
+ *  Typography: Poppins Normal (titles + body)
+ * ────────────────────────────────────────────────────────────────────────────
+ */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* ── Semantic shadcn/ui tokens mapped to the brand ─────────────── */
+    --background: 209 33% 97%;          /* Upslope Fog  */
+    --foreground: 203 9% 17%;           /* Squid Ink    */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;                  /* White        */
+    --card-foreground: 203 9% 17%;      /* Squid Ink    */
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 203 9% 17%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 170 100% 46%;            /* Neon Mint    */
+    --primary-foreground: 0 0% 0%;      /* Black        */
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 165 79% 85%;           /* Aqua Breeze  */
+    --secondary-foreground: 203 9% 17%; /* Squid Ink    */
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 209 33% 92%;               /* tinted Upslope Fog */
+    --muted-foreground: 203 9% 42%;     /* medium Squid Ink   */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 165 79% 85%;              /* Aqua Breeze  */
+    --accent-foreground: 203 9% 17%;    /* Squid Ink    */
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 209 33% 88%;
+    --input: 209 33% 88%;
+    --ring: 170 100% 46%;               /* Neon Mint    */
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
+
+    /* ── Raw brand tokens (use directly via var()) ─────────────────── */
+    --color-neon-mint: 170 100% 46%;
+    --color-aqua-breeze: 165 79% 85%;
+    --color-squid-ink: 203 9% 17%;
+    --color-upslope-fog: 209 33% 97%;
+    --color-brand-black: 0 0% 0%;
+    --color-brand-white: 0 0% 100%;
   }
 
+  /* Dark mode — desaturated inversion keeping brand identity */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 203 9% 10%;
+    --foreground: 209 33% 97%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 203 9% 14%;
+    --card-foreground: 209 33% 97%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 203 9% 14%;
+    --popover-foreground: 209 33% 97%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 170 100% 46%;
+    --primary-foreground: 0 0% 0%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 203 9% 22%;
+    --secondary-foreground: 209 33% 97%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 203 9% 20%;
+    --muted-foreground: 209 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 203 9% 22%;
+    --accent-foreground: 209 33% 97%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 209 33% 97%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 203 9% 22%;
+    --input: 203 9% 22%;
+    --ring: 170 100% 46%;
   }
 }
 
@@ -71,6 +98,9 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans font-normal tracking-tight;
   }
 }

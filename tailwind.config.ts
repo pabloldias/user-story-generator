@@ -18,7 +18,13 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        // Poppins is loaded via next/font in layout.tsx and applied through
+        // the CSS variable --font-poppins; "sans" is overridden to use it.
+        sans: ["var(--font-poppins)", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
       colors: {
+        /* ── shadcn/ui semantic tokens ─────────────────────────────── */
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -51,6 +57,18 @@ const config: Config = {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+
+        /* ── Brand named tokens ────────────────────────────────────── */
+        brand: {
+          // Primary
+          "neon-mint": "hsl(var(--color-neon-mint))",
+          "black":     "hsl(var(--color-brand-black))",
+          "white":     "hsl(var(--color-brand-white))",
+          // Secondary
+          "aqua-breeze":  "hsl(var(--color-aqua-breeze))",
+          "squid-ink":    "hsl(var(--color-squid-ink))",
+          "upslope-fog":  "hsl(var(--color-upslope-fog))",
         },
       },
       borderRadius: {
