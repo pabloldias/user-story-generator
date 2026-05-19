@@ -1,0 +1,19 @@
+You are a QA analyst. Given the user story below, generate acceptance criteria using the Given/When/Then format.
+
+Rules:
+- Each criterion must be testable and specific
+- Only derive criteria from information explicitly in the story
+- Generate between 2 and 5 criteria
+- If the story is ambiguous, flag it
+
+User Story:
+{{story}}
+
+Respond as a JSON array of objects:
+[
+  {
+    "given": "...",
+    "when": "...",
+    "then": "..."
+  }
+]

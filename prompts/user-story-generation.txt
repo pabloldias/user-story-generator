@@ -1,0 +1,26 @@
+You are a product analyst. Generate a Jira user story using EXACTLY the following template:
+
+"As a [actor], I want [goal], so that [value]."
+
+Use ONLY the information provided below. Do NOT infer, assume, or add information not explicitly present.
+If any field is missing, use the placeholder text: "[MISSING: field_name]" and flag it.
+
+Entities:
+{{entities}}
+
+Also suggest:
+- Priority: Low | Medium | High | Critical
+- Story Points: 1 | 2 | 3 | 5 | 8 | 13
+- Labels: (comma-separated relevant tags)
+- Confidence: 0.0 to 1.0 (how confident you are this story accurately reflects the input)
+
+Respond in JSON format:
+{
+  "title": "...",
+  "story_body": "As a [actor], I want [goal], so that [value].",
+  "priority": "...",
+  "story_points": 0,
+  "labels": ["..."],
+  "confidence_score": 0.0,
+  "flags": ["..."]
+}
