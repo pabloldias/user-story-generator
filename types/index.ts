@@ -68,4 +68,6 @@ export interface JiraExportResponse {
   jira_issue_key?: string;
   dry_run: boolean;
   payload?: Record<string, unknown>;
+  /** Present when the Jira issue was created but persisting the key to the DB failed. */
+  warning?: string;
 }
