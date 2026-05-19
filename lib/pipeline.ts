@@ -18,6 +18,40 @@ async function loadPrompt(filename: string): Promise<string> {
   return readFile(promptPath, "utf-8");
 }
 
+// ─── LLM call logger ─────────────────────────────────────────────────────────
+
+/**
+ * Logs an LLM call to stdout (server logs / Vercel log drain) in a structured
+ * JSON line. Replace with a Supabase insert in a future iteration to satisfy
+ * "log raw LLM responses for traceability" (Phase 5 task 5).
+ */
+function logLLMCall(
+  step: string,
+  rawContent: string,
+  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number },
+): void {
+  console.log(
+    JSON.stringify({
+      level: "info",
+      source: "pipeline",
+      step,
+      timestamp: new Date().toISOString(),
+      usage: usage ?? null,
+      raw_content_length: rawContent.length,
+    }),
+  );
+}
+
+// ─── System prompts ───────────────────────────────────────────────────────────
+// Each step gets a focused system role instruction so the model stays in
+// character for its part of the pipeline and is less likely to deviate.
+
+const SYSTEM_ENTITY_EXTRACTION = `You are a senior requirements analyst. Your only job is to extract entities from business requirements exactly as stated. You never infer, guess, or add information. You always return valid JSON.`;
+
+const SYSTEM_STORY_GENERATION = `You are a certified Agile product analyst. Your only job is to write Jira-formatted user stories from the provided entities. You never add information beyond what you are given. You always return valid JSON.`;
+
+const SYSTEM_ACCEPTANCE_CRITERIA = `You are a senior QA analyst. Your only job is to write testable Given/When/Then acceptance criteria derived strictly from the user story provided. You never invent requirements. You always return valid JSON.`;
+
 // ─── Step 1: Entity Extraction ────────────────────────────────────────────────
 
 /**
@@ -27,7 +61,13 @@ async function loadPrompt(filename: string): Promise<string> {
 export async function extractEntities(rawInput: string): Promise<EntityExtraction> {
   const prompt = await loadPrompt("entity-extraction.txt");
 
-  const raw = await callLLM(prompt, { input: rawInput });
+  const { content: raw, usage } = await callLLM(
+    prompt,
+    { input: rawInput },
+    { systemPrompt: SYSTEM_ENTITY_EXTRACTION },
+  );
+
+  logLLMCall("entity_extraction", raw, usage);
 
   let parsed: unknown;
   try {
@@ -57,7 +97,14 @@ export async function generateStory(entities: EntityExtraction): Promise<UserSto
   const prompt = await loadPrompt("user-story-generation.txt");
 
   const entitiesText = JSON.stringify(entities, null, 2);
-  const raw = await callLLM(prompt, { entities: entitiesText });
+
+  const { content: raw, usage } = await callLLM(
+    prompt,
+    { entities: entitiesText },
+    { systemPrompt: SYSTEM_STORY_GENERATION },
+  );
+
+  logLLMCall("story_generation", raw, usage);
 
   let parsed: unknown;
   try {
@@ -80,21 +127,29 @@ export async function generateStory(entities: EntityExtraction): Promise<UserSto
 
 /**
  * Generates 2–5 acceptance criteria in Given/When/Then format for a story.
+ *
+ * The prompt returns `{"criteria":[…]}` — a JSON object wrapping the array —
+ * so json_object mode is always satisfied without any brittle hacks.
  */
 export async function generateAcceptanceCriteria(
   storyBody: string,
 ): Promise<AcceptanceCriterion[]> {
   const prompt = await loadPrompt("acceptance-criteria.txt");
 
-  const raw = await callLLM(prompt, { story: storyBody });
+  const { content: raw, usage } = await callLLM(
+    prompt,
+    { story: storyBody },
+    { systemPrompt: SYSTEM_ACCEPTANCE_CRITERIA },
+  );
+
+  logLLMCall("acceptance_criteria", raw, usage);
 
   let parsed: unknown;
   try {
-    // The AC prompt returns a bare JSON array; wrap it in an object so
-    // json_object mode is satisfied, then unwrap.
-    const maybeWrapped = raw.trim().startsWith("[") ? `{"items":${raw}}` : raw;
-    const obj = JSON.parse(maybeWrapped) as Record<string, unknown>;
-    parsed = Array.isArray(obj) ? obj : (obj.items ?? obj);
+    const obj = JSON.parse(raw) as Record<string, unknown>;
+    // Expect {"criteria": [...]} from the refined prompt.
+    // Fall back to the root object being an array for backwards compatibility.
+    parsed = Array.isArray(obj) ? obj : (obj.criteria ?? obj.items ?? obj);
   } catch {
     throw new LLMError(`Acceptance criteria returned invalid JSON: ${raw}`);
   }

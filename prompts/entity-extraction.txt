@@ -1,17 +1,22 @@
-You are a requirements analyst. Given the following unstructured business requirement, extract the key entities:
-- Actor (who is performing the action)
-- Goal (what they want to do)
-- Value (why / the business benefit)
+Given the following unstructured business requirement, extract three key entities:
 
-Only extract information explicitly stated in the input. If any entity is missing, return null for that field.
+- actor  — the person or system performing the action (who)
+- goal   — what they want to achieve (what)
+- value  — the business benefit or reason (why)
+
+Rules:
+1. Only extract information that is EXPLICITLY stated in the input.
+2. Do NOT infer, guess, or embellish any entity.
+3. If an entity cannot be found in the text, return null for that field and add its name to missing_fields.
+4. Return valid JSON only — no markdown, no explanation outside the JSON object.
 
 Input:
 {{input}}
 
-Respond in JSON format:
+Respond with this exact JSON structure:
 {
-  "actor": "...",
-  "goal": "...",
-  "value": "...",
+  "actor": "<extracted actor or null>",
+  "goal": "<extracted goal or null>",
+  "value": "<extracted value or null>",
   "missing_fields": ["actor" | "goal" | "value"]
 }

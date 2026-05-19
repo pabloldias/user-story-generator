@@ -1,26 +1,27 @@
-You are a product analyst. Generate a Jira user story using EXACTLY the following template:
+Generate a Jira user story from the extracted entities below.
 
-"As a [actor], I want [goal], so that [value]."
+The story_body MUST follow this exact template — do not deviate:
+  "As a <actor>, I want <goal>, so that <value>."
 
-Use ONLY the information provided below. Do NOT infer, assume, or add information not explicitly present.
-If any field is missing, use the placeholder text: "[MISSING: field_name]" and flag it.
+Rules:
+1. Use ONLY the information provided in the entities JSON.
+2. Do NOT infer, assume, or add any detail not present in the input.
+3. If an entity value is null, use the placeholder "[MISSING: <field_name>]" in the story body and add the field name to flags.
+4. Choose the most appropriate priority and story_points based on the complexity implied by the goal.
+5. labels must be lowercase, hyphen-separated strings (e.g. "user-auth", "payments").
+6. confidence_score reflects how well the extracted entities cover a complete, unambiguous story (0.0 = very poor, 1.0 = perfect).
+7. Return valid JSON only — no markdown, no explanation outside the JSON object.
 
 Entities:
 {{entities}}
 
-Also suggest:
-- Priority: Low | Medium | High | Critical
-- Story Points: 1 | 2 | 3 | 5 | 8 | 13
-- Labels: (comma-separated relevant tags)
-- Confidence: 0.0 to 1.0 (how confident you are this story accurately reflects the input)
-
-Respond in JSON format:
+Respond with this exact JSON structure:
 {
-  "title": "...",
-  "story_body": "As a [actor], I want [goal], so that [value].",
-  "priority": "...",
-  "story_points": 0,
-  "labels": ["..."],
+  "title": "<concise story title, max 80 chars>",
+  "story_body": "As a <actor>, I want <goal>, so that <value>.",
+  "priority": "Low" | "Medium" | "High" | "Critical",
+  "story_points": 1 | 2 | 3 | 5 | 8 | 13,
+  "labels": ["<label>"],
   "confidence_score": 0.0,
-  "flags": ["..."]
+  "flags": ["<flag code if any>"]
 }

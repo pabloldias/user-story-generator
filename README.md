@@ -10,10 +10,12 @@ A proof-of-concept tool that converts unstructured business requirements into st
 |---|---|
 | Frontend | Next.js 15 + shadcn/ui + Tailwind CSS |
 | Backend / Database | Supabase (Postgres, Auth, Storage) |
-| Workflow Orchestration | n8n (local) |
+| AI Orchestration | Next.js API Routes (server-side pipeline) |
 | LLM Access | Requesty (OpenAI-compatible) |
 | Jira Integration | Jira REST API |
 | Language | TypeScript |
+
+> **Note:** n8n was evaluated as a workflow engine but removed in favour of a direct, server-side TypeScript pipeline (`lib/pipeline.ts`) running inside Next.js API routes. This removes the Docker/n8n dependency and keeps the whole stack in one process.
 
 ---
 
@@ -82,7 +84,7 @@ cd user-story-generator
 npm install
 ```
 
-This installs all packages defined in `package.json`, including Next.js, React, Tailwind, shadcn/ui primitives, Supabase client, and more. All TypeScript errors visible before this step will disappear.
+This installs all packages defined in `package.json`, including Next.js, React, Tailwind, shadcn/ui primitives, Supabase client, and more.
 
 ### 3 — Configure environment variables
 
@@ -107,57 +109,44 @@ Open your browser at <http://localhost:3000>. You should see the landing page.
 | Variable | Description | Where to get it |
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL | Supabase Dashboard → Project Settings → API Keys |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase **publishable** key (new model, replaces legacy anon key) — safe to expose to the browser | Supabase Dashboard → Project Settings → API Keys |
-| `SUPABASE_SECRET_KEY` | Supabase **secret** key (new model, replaces legacy service_role key) — server-only, never expose to the browser | Supabase Dashboard → Project Settings → API Keys |
-| `N8N_WEBHOOK_URL` | Full URL of the n8n webhook trigger | n8n workflow → Webhook node URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase **publishable** key — safe to expose to the browser | Supabase Dashboard → Project Settings → API Keys |
+| `SUPABASE_SECRET_KEY` | Supabase **secret** key — server-only, never expose to the browser | Supabase Dashboard → Project Settings → API Keys |
+| `REQUESTY_API_KEY` | Requesty API key for LLM access | Requesty dashboard |
+| `REQUESTY_BASE_URL` | Requesty base URL (OpenAI-compatible endpoint) | Requesty dashboard |
+| `REQUESTY_MODEL` | Model identifier (e.g. `openai/gpt-4o`) | Requesty dashboard |
 | `JIRA_BASE_URL` | Your Jira instance base URL (e.g. `https://yourorg.atlassian.net`) | Jira admin |
 | `JIRA_API_TOKEN` | Jira API token | <https://id.atlassian.com/manage-profile/security/api-tokens> |
 | `JIRA_EMAIL` | Email linked to the Jira API token | Your Atlassian account email |
 | `JIRA_PROJECT_KEY` | Jira project key (e.g. `USG`) | Jira project settings |
 
-> **Note:** Variables prefixed with `NEXT_PUBLIC_` are exposed to the browser. `SUPABASE_SECRET_KEY` must never be used in client-side code.
-
----
-
-## Running n8n Locally (required for story generation)
-
-n8n is the workflow engine that calls the LLM. It runs locally via Docker.
-
-### Install Docker
-
-1. Download Docker Desktop from <https://www.docker.com/products/docker-desktop/>
-2. Install and start it
-
-### Start n8n
-
-```bash
-docker run -it --rm -p 5678:5678 n8nio/n8n
-```
-
-Open <http://localhost:5678> and configure your workflow (see Phase 3 in the implementation plan).
-
-Once your webhook is set up, copy the webhook URL into your `.env.local` as `N8N_WEBHOOK_URL`.
+> **Note:** Variables prefixed with `NEXT_PUBLIC_` are exposed to the browser. `SUPABASE_SECRET_KEY` and all Requesty / Jira vars must never be used in client-side code.
 
 ---
 
 ## Project Structure
 
 ```
-/app              → Next.js App Router pages and layouts
-/components       → Reusable UI components (shadcn/ui + custom)
-  /ui             → Base shadcn/ui primitives (Button, Card, Input, etc.)
-/lib              → Utility modules
-  supabase.ts     → Supabase browser client
-  n8n.ts          → n8n webhook trigger helper
-  jira.ts         → Jira REST API helpers
-  utils.ts        → Tailwind class merge utility (cn)
-/types            → Shared TypeScript interfaces
-/prompts          → Versioned LLM prompt templates
-/mock-data        → Sample requirement inputs for development/testing
-/scripts          → Utility scripts (e.g. Supabase seed)
-/n8n/workflows    → Exported n8n workflow JSON files
-/docs             → Project documentation
-/plans            → Architecture and implementation plans
+/app                  → Next.js App Router pages and layouts
+  /(auth)             → Login and sign-up pages
+  /api/generate       → POST endpoint that runs the AI pipeline
+/components           → Reusable UI components (shadcn/ui + custom)
+  /ui                 → Base shadcn/ui primitives (Button, Card, Input, etc.)
+/lib                  → Core logic modules
+  supabase.ts         → Supabase browser client
+  supabase-server.ts  → Supabase server client (for API routes / middleware)
+  llm.ts              → LLM client wrapper (Requesty / OpenAI-compatible)
+  pipeline.ts         → Multi-step AI generation pipeline
+  schemas.ts          → Zod schemas for LLM output validation
+  guardrails.ts       → Safety and quality guardrails
+  jira.ts             → Jira REST API helpers
+  utils.ts            → Tailwind class merge utility (cn)
+/types                → Shared TypeScript interfaces
+/prompts              → Versioned LLM prompt templates
+/mock-data            → Sample requirement inputs for development/testing
+/scripts              → Utility scripts (e.g. Supabase seed)
+/supabase/migrations  → SQL migration files for the database schema
+/docs                 → Project documentation
+/plans                → Architecture and implementation plans
 ```
 
 ---
@@ -179,17 +168,29 @@ Once your webhook is set up, copy the webhook URL into your `.env.local` as `N8N
 | Phase | Description | Status |
 |---|---|---|
 | Phase 1 | Project Setup and Scaffolding | ✅ Done |
-| Phase 2 | Supabase Schema and Auth | 🔲 Next |
-| Phase 3 | n8n Workflow Design | 🔲 Pending |
-| Phase 4 | Frontend UI Implementation | 🔲 Pending |
-| Phase 5 | LLM Integration and Prompt Design | 🔲 Pending |
-| Phase 6 | Jira REST API Integration | 🔲 Pending |
+| Phase 2 | Supabase Schema and Auth | ✅ Done |
+| Phase 3 | AI Pipeline (replaces n8n) | ✅ Done |
+| Phase 4 | Frontend UI Implementation | ✅ Done |
+| Phase 5 | LLM Integration and Prompt Design | ✅ Done |
+| Phase 6 | Jira REST API Integration | ✅ Done |
 | Phase 7 | Review and Approval Workflow | 🔲 Pending |
-| Phase 8 | Guardrails and Safety Layer | 🔲 Pending |
+| Phase 8 | Guardrails and Safety Layer | ✅ Done |
 | Phase 9 | Mock Data and Testing | 🔲 Pending |
 | Phase 10 | Documentation and Deliverables | 🔲 Pending |
 
 See [`plans/implementation-plan.md`](./plans/implementation-plan.md) for the full plan.
+
+### Phase 3 note — n8n removed
+
+The original plan included n8n as a visual workflow engine (running locally via Docker). After evaluation it was replaced by a pure TypeScript server-side pipeline:
+
+- `lib/pipeline.ts` — orchestrates entity extraction → story generation → acceptance criteria steps
+- `lib/llm.ts` — thin wrapper around the Requesty (OpenAI-compatible) client
+- `lib/schemas.ts` — Zod schemas that validate and type LLM JSON output
+- `lib/guardrails.ts` — post-processing safety checks
+- `app/api/generate/route.ts` — the single HTTP entry point for the pipeline
+
+This eliminates the Docker/n8n dependency while keeping the same multi-step AI logic.
 
 ---
 
@@ -208,7 +209,3 @@ Node.js is not installed or not on your PATH. Follow the [Node.js installation s
 ```bash
 npm run dev -- -p 3001
 ```
-
-**n8n webhook unreachable**
-
-Ensure Docker is running and n8n is started. Check that `N8N_WEBHOOK_URL` in `.env.local` points to `http://localhost:5678/webhook/<your-id>`.
