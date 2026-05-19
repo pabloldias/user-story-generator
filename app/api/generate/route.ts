@@ -100,13 +100,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       throw new Error("Failed to store generated story.");
     }
 
-    // ── 7. Mark requirement as completed ───────────────────────────────────
+    // ── 7. Persist guardrail check results ─────────────────────────────────
+    if (guardrail.checks.length > 0) {
+      await supabase.from("guardrail_logs").insert(
+        guardrail.checks.map((c) => ({
+          story_id: (story as { id: string }).id,
+          rule: c.rule,
+          passed: c.passed,
+          details: c.details,
+        })),
+      );
+    }
+
+    // ── 8. Mark requirement as completed ───────────────────────────────────
     await supabase
       .from("requirements")
       .update({ status: "completed" })
       .eq("id", requirementId);
 
-    // ── 8. Return structured payload ────────────────────────────────────────
+    // ── 9. Return structured payload ────────────────────────────────────────
     const response: GenerateResponse = {
       requirement_id: requirementId,
       stories: [story as UserStory],
