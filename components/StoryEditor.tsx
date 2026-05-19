@@ -64,6 +64,41 @@ export function StoryEditor({ story, onSaved }: StoryEditorProps) {
       return;
     }
 
+    // Audit log — write one row per changed field to story_edits
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      const editedFields: Array<{ field: string; old_value: string; new_value: string }> = [];
+
+      if (values.title !== story.title) {
+        editedFields.push({ field: "title", old_value: story.title, new_value: values.title });
+      }
+      if (values.story_body !== story.story_body) {
+        editedFields.push({ field: "story_body", old_value: story.story_body, new_value: values.story_body });
+      }
+      if (values.acceptance_criteria !== story.acceptance_criteria) {
+        editedFields.push({
+          field: "acceptance_criteria",
+          old_value: story.acceptance_criteria,
+          new_value: values.acceptance_criteria,
+        });
+      }
+
+      if (editedFields.length > 0) {
+        await supabase.from("story_edits").insert(
+          editedFields.map((f) => ({
+            story_id: story.id,
+            user_id: user.id,
+            field: f.field,
+            old_value: f.old_value,
+            new_value: f.new_value,
+          }))
+        );
+      }
+    }
+
     setSaved(true);
     onSaved?.(values);
     router.refresh();

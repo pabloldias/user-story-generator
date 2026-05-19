@@ -3,7 +3,23 @@ import { AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetadataBadges } from "@/components/MetadataBadges";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
-import type { UserStory } from "@/types";
+import type { StoryStatus, UserStory } from "@/types";
+
+const statusLabel: Record<StoryStatus, string> = {
+  draft: "Draft",
+  under_review: "Under Review",
+  approved: "Approved",
+  needs_changes: "Needs Changes",
+  exported: "Exported",
+};
+
+const statusColor: Record<StoryStatus, string> = {
+  draft: "bg-slate-100 text-slate-600",
+  under_review: "bg-blue-50 text-blue-700",
+  approved: "bg-emerald-50 text-emerald-700",
+  needs_changes: "bg-amber-50 text-amber-700",
+  exported: "bg-violet-50 text-violet-700",
+};
 
 interface StoryCardProps {
   story: UserStory;
@@ -19,6 +35,11 @@ export function StoryCard({ story, linkable = false }: StoryCardProps) {
           <CardTitle className="text-base font-semibold leading-snug line-clamp-2">
             {story.title}
           </CardTitle>
+          <span
+            className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColor[story.status]}`}
+          >
+            {statusLabel[story.status]}
+          </span>
         </div>
         <MetadataBadges
           priority={story.priority}

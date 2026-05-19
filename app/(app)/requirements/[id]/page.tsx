@@ -3,8 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase-server";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { StoryCard } from "@/components/StoryCard";
+import { BulkApprovalToolbar } from "@/components/BulkApprovalToolbar";
+import { ExportButton } from "@/components/ExportButton";
 import type { Requirement, UserStory } from "@/types";
 
 interface Props {
@@ -98,6 +100,13 @@ export default async function RequirementDetailPage({ params }: Props) {
               {storyList.length} {storyList.length === 1 ? "story" : "stories"}
             </span>
           </div>
+
+          {storyList.length > 1 && (
+            <div className="flex flex-wrap items-center gap-3">
+              <BulkApprovalToolbar stories={storyList} />
+              <ExportButton stories={storyList} label={`requirement-${req.id.slice(0, 8)}`} />
+            </div>
+          )}
 
           {req.status === "processing" && (
             <Card className="border-blue-200 bg-blue-50">

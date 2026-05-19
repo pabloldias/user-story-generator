@@ -8,6 +8,7 @@ import { MetadataBadges } from "@/components/MetadataBadges";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
 import { ApprovalToolbar } from "@/components/ApprovalToolbar";
 import { JiraExportButton } from "@/components/JiraExportButton";
+import { ExportButton } from "@/components/ExportButton";
 import { StoryEditor } from "@/components/StoryEditor";
 import type { UserStory } from "@/types";
 
@@ -94,6 +95,15 @@ export default async function StoryDetailPage({ params }: Props) {
             </CardHeader>
             <CardContent>
               <JiraExportButton storyId={s.id} existingKey={s.jira_issue_key} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Download</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ExportButton stories={[s]} label={s.title} />
             </CardContent>
           </Card>
 
