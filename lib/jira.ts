@@ -10,10 +10,11 @@ const JIRA_PROJECT_KEY = process.env.JIRA_PROJECT_KEY;
 
 /**
  * The Jira custom field ID used for story points.
- * Jira Cloud uses `customfield_10016` by default (Story Points / Story point estimate).
- * Override with JIRA_STORY_POINTS_FIELD env var if your instance differs.
+ * Set JIRA_STORY_POINTS_FIELD (e.g. "customfield_10016") to enable story-point syncing.
+ * If the env var is not set, story points are intentionally omitted from the Jira payload
+ * to avoid 400 errors when the field is not on the project's create screen.
  */
-const JIRA_STORY_POINTS_FIELD = process.env.JIRA_STORY_POINTS_FIELD ?? "customfield_10016";
+const JIRA_STORY_POINTS_FIELD = process.env.JIRA_STORY_POINTS_FIELD ?? null;
 
 // ─── Error class ──────────────────────────────────────────────────────────────
 
@@ -112,12 +113,26 @@ export interface JiraProject {
 // ─── Payload builder ──────────────────────────────────────────────────────────
 
 /**
+ * Maps internal Priority values to Jira's default priority scheme names.
+ * Jira Cloud default priorities: Highest, High, Medium, Low, Lowest.
+ */
+function toJiraPriority(priority: UserStory["priority"]): string {
+  const map: Record<UserStory["priority"], string> = {
+    Critical: "Highest",
+    High: "High",
+    Medium: "Medium",
+    Low: "Low",
+  };
+  return map[priority] ?? "Medium";
+}
+
+/**
  * Converts an app `UserStory` record into a `JiraIssuePayload`.
  *
  * Field mapping per the implementation plan:
  *  title                        → summary
  *  story_body + acceptance_criteria → description (ADF)
- *  priority                     → priority.name
+ *  priority                     → priority.name (mapped to Jira scheme)
  *  labels                       → labels
  *  story_points                 → customfield_10016 (or JIRA_STORY_POINTS_FIELD)
  */
@@ -127,7 +142,7 @@ export function buildJiraPayload(story: UserStory): JiraIssuePayload {
   return {
     summary: story.title,
     description,
-    priority: story.priority,
+    priority: toJiraPriority(story.priority),
     labels: story.labels,
     storyPoints: story.story_points,
   };
@@ -176,7 +191,7 @@ export async function createJiraIssue(
       issuetype: { name: "Story" },
       priority: { name: payload.priority },
       labels: payload.labels,
-      ...(payload.storyPoints != null
+      ...(JIRA_STORY_POINTS_FIELD != null && payload.storyPoints != null
         ? { [JIRA_STORY_POINTS_FIELD]: payload.storyPoints }
         : {}),
     },

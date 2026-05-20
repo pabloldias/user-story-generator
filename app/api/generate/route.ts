@@ -89,7 +89,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         labels: pipelineResult.labels,
         confidence_score: pipelineResult.confidence_score,
         status: storyStatus,
-        flags: mergedFlags.length > 0 ? mergedFlags : null,
+        flags: mergedFlags,
         jira_issue_key: null,
       })
       .select()
