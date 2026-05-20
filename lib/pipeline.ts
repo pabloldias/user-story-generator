@@ -154,14 +154,30 @@ export async function generateAcceptanceCriteria(
     throw new LLMError(`Acceptance criteria returned invalid JSON: ${raw}`);
   }
 
-  const result = AcceptanceCriteriaSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new LLMError(
-      `Acceptance criteria schema validation failed: ${result.error.message}`,
-    );
+  // Allow an empty array from the LLM — the INSUFFICIENT_AC guardrail will flag
+  // it. We only throw if the structure is completely wrong (not an array).
+  const arrayResult = AcceptanceCriteriaSchema.safeParse(parsed);
+  if (arrayResult.success) {
+    return arrayResult.data;
   }
 
-  return result.data;
+  // If the only problem is the array being empty, return the placeholder so the
+  // story is still stored and the guardrail fires correctly.
+  const isEmptyArray = Array.isArray(parsed) && (parsed as unknown[]).length === 0;
+  if (isEmptyArray) {
+    console.warn("[pipeline] Acceptance criteria: LLM returned empty array — using placeholder.");
+    return [
+      {
+        given: "[MISSING: acceptance criteria — the input was too ambiguous for the LLM to generate testable criteria]",
+        when: "the user attempts to use the feature",
+        then: "the expected outcome is undefined — manual review required",
+      },
+    ];
+  }
+
+  throw new LLMError(
+    `Acceptance criteria schema validation failed: ${arrayResult.error.message}`,
+  );
 }
 
 // ─── Serialiser ───────────────────────────────────────────────────────────────

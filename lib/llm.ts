@@ -121,8 +121,12 @@ export async function callLLM(
         },
       );
 
-      const content = response.data.choices?.[0]?.message?.content;
-      if (!content) throw new LLMError("LLM returned an empty response content.");
+      const rawContent = response.data.choices?.[0]?.message?.content;
+      if (!rawContent) throw new LLMError("LLM returned an empty response content.");
+
+      // Strip markdown code fences (```json ... ``` or ``` ... ```) that some
+      // models emit even when json_object response_format is requested.
+      const content = rawContent.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
 
       return { content, usage: response.data.usage };
     } catch (err) {

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "mock-001",
+    "type": "feature_description",
+    "description": "Feature description from meeting notes",
+    "raw_input": "During today's sprint planning we agreed that customers need to be able to reset their password from the mobile app without calling support. The new password must meet our existing security policy (min 8 chars, one uppercase, one number) and the user should receive a confirmation email once the reset is done."
+  },
+  {
+    "id": "mock-002",
+    "type": "email_style",
+    "description": "Email-style requirement from a stakeholder",
+    "raw_input": "Hi team,\n\nFollowing our meeting with the finance team, we need to add an export feature to the reports dashboard. Finance analysts need to download any report as a CSV file so they can import it into Excel for further analysis. This should be available on all existing report types.\n\nThanks,\nSarah"
+  },
+  {
+    "id": "mock-003",
+    "type": "formal_brd",
+    "description": "Formal BRD-style paragraph",
+    "raw_input": "REQ-045: The system shall provide registered users with the ability to configure personalised notification preferences. Users must be able to select notification channels (email, SMS, in-app) and frequency (immediate, daily digest, weekly summary) on a per-event-type basis. Changes to preferences must take effect within one business day."
+  },
+  {
+    "id": "mock-004",
+    "type": "ambiguous",
+    "description": "Ambiguous input — tests MISSING_FIELDS flagging (no explicit value/benefit)",
+    "raw_input": "We need a dark mode for the application."
+  },
+  {
+    "id": "mock-005",
+    "type": "multi_story",
+    "description": "Multi-story input — user onboarding flow covering several distinct needs",
+    "raw_input": "New users who sign up via the web portal need to complete an onboarding checklist before accessing the full platform. The checklist should include: verifying their email address, completing their profile (name, company, role), and accepting the terms of service. Once all steps are completed the user should be redirected to the main dashboard and receive a welcome email."
+  },
+  {
+    "id": "mock-006",
+    "type": "feature_description",
+    "description": "Search and filter feature from a product manager's notes",
+    "raw_input": "Product note (2025-Q3): Customers are complaining that the product catalogue is too hard to navigate when it has hundreds of items. We need to add full-text search and filtering by category, price range, and availability to the catalogue page. Results should update in real-time as the user types or adjusts filters, without a full page reload."
+  },
+  {
+    "id": "mock-007",
+    "type": "ambiguous",
+    "description": "Ambiguous input — vague actor and no explicit goal outcome (tests LOW_CONFIDENCE)",
+    "raw_input": "Make the checkout faster somehow."
+  },
+  {
+    "id": "mock-008",
+    "type": "formal_brd",
+    "description": "Formal BRD — audit logging requirement",
+    "raw_input": "REQ-112: For compliance purposes, all administrative actions performed within the admin console must be recorded in an immutable audit log. The log must capture the acting user's identity, the action type, the affected resource ID, a before/after snapshot of the changed data, and a UTC timestamp. Logs must be retained for a minimum of 7 years and must be exportable in JSON format."
+  },
+  {
+    "id": "mock-009",
+    "type": "email_style",
+    "description": "Email-style — mobile push notifications",
+    "raw_input": "From: Marcus (Product Lead)\n\nWe've had a lot of requests from mobile users who want to know when their order ships. Can we send a push notification to the customer's phone when the order status changes to 'Dispatched'? The notification should include the order number and a link to the tracking page. It should only be sent if the user has enabled notifications in their app settings."
+  },
+  {
+    "id": "mock-010",
+    "type": "ambiguous",
+    "description": "Ambiguous input — missing both actor and value (tests MISSING_FIELDS + INVALID_TEMPLATE flags)",
+    "raw_input": "Add two-factor authentication."
+  }
+]
