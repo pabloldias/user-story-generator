@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, MessageSquareWarning } from "lucide-react";
 import { createClient } from "@/lib/supabase-server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StoryCard } from "@/components/StoryCard";
 import { BulkApprovalToolbar } from "@/components/BulkApprovalToolbar";
 import { ExportButton } from "@/components/ExportButton";
+import { RejectAndRegenerateDialog } from "@/components/RejectAndRegenerateDialog";
 import type { Requirement, UserStory } from "@/types";
 
 interface Props {
@@ -78,16 +79,38 @@ export default async function RequirementDetailPage({ params }: Props) {
               {req.status}
             </span>
           </div>
-          <Card className="border-border h-full">
-            <CardContent className="pt-4">
+
+          <Card className="border-border">
+            <CardContent className="pt-4 flex flex-col gap-4">
               <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
                 {req.raw_input}
               </p>
-              <p className="mt-4 text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Submitted {new Date(req.created_at).toLocaleString()}
               </p>
             </CardContent>
           </Card>
+
+          {/* Previous rejection feedback (if any) */}
+          {req.rejection_feedback && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <MessageSquareWarning className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                <p className="text-xs font-semibold text-amber-700">Previous reviewer feedback</p>
+              </div>
+              <p className="text-xs leading-relaxed whitespace-pre-wrap text-amber-800">
+                {req.rejection_feedback}
+              </p>
+            </div>
+          )}
+
+          {/* Reject & Regenerate — only available when stories have been generated */}
+          {req.status === "completed" && storyList.length > 0 && (
+            <RejectAndRegenerateDialog
+              requirementId={req.id}
+              rawInput={req.raw_input}
+            />
+          )}
         </div>
 
         {/* Right — Generated Stories */}

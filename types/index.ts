@@ -26,6 +26,7 @@ export interface Requirement {
   raw_input: string;
   source_type: "text" | "document" | "email";
   status: "pending" | "processing" | "completed" | "failed";
+  rejection_feedback: string | null;
   created_at: string;
 }
 
