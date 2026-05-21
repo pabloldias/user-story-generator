@@ -9,7 +9,31 @@ Rules:
 3. If an entity value is null, use the placeholder "[MISSING: <field_name>]" in the story body and add the field name to flags.
 4. Choose the most appropriate priority and story_points based on the complexity implied by the goal.
 5. labels must be lowercase, hyphen-separated strings (e.g. "user-auth", "payments").
-6. confidence_score reflects how well the extracted entities cover a complete, unambiguous story (0.0 = very poor, 1.0 = perfect).
+6. confidence_score must be a rigorous, honest assessment (0.0 = unusable, 1.0 = perfect). Use the following calibration table — be strict:
+
+   SCORE RANGE | CRITERIA
+   0.00–0.15   | One or more entities are null; nothing actionable can be built.
+   0.16–0.30   | All entities are present but the goal is so vague (e.g. "make it better",
+               | "improve things", "fix issues") that no developer could implement it without
+               | a clarifying conversation. The value/benefit is either missing or generic.
+   0.31–0.50   | Entities are present but the goal lacks specificity (no measurable outcome,
+               | no defined scope, uses hedging language like "more useful", "less confusing",
+               | "right stuff", "easier", "nicer", "cleaner") and the value is implied rather
+               | than explicitly stated.
+   0.51–0.70   | Goal is reasonably specific but missing one concrete detail (e.g. scope,
+               | acceptance condition, or a clear measurable outcome). Value is stated.
+   0.71–0.85   | Goal is specific and actionable, value is stated and meaningful, actor is
+               | correct. Minor ambiguity remains (e.g. edge cases unstated).
+   0.86–1.00   | All three entities are explicit and unambiguous. The goal describes a
+               | concrete, testable behaviour. The value is a clear business benefit. No
+               | inference was required. A developer can implement this without clarification.
+
+   Common traps that MUST lower the score into the 0.16–0.30 band:
+   - Goal is essentially a complaint or a wish ("it should be better / more useful")
+   - Goal contains only adjectives without a concrete action or measurable outcome
+   - The requirement is an email or informal message with no structured detail
+   - The source explicitly says "vague", "unclear", or uses phrases like "right stuff"
+
 7. Return valid JSON only — no markdown, no explanation outside the JSON object.
 
 Entities:

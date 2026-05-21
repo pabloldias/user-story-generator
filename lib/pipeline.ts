@@ -11,6 +11,59 @@ import {
   type PipelineResult,
 } from "./schemas";
 
+// ─── Vagueness patterns ───────────────────────────────────────────────────────
+// Phrases that indicate an entity is present in text but carries no concrete,
+// actionable meaning. Any match hard-caps the confidence score.
+const VAGUE_GOAL_PATTERNS = [
+  /\bbetter\b/i,
+  /\bmore useful\b/i,
+  /\bless confusing\b/i,
+  /\beasier\b/i,
+  /\bimprove\b/i,
+  /\bnicer\b/i,
+  /\bcleaner\b/i,
+  /\bfix (?:the |it|things|issues|problems|stuff)\b/i,
+  /\bright stuff\b/i,
+  /\bmore intuitive\b/i,
+  /\buser.friendly\b/i,
+  /\benhance\b/i,
+  /\boptimize\b/i,
+  /\bsomething\b/i,
+  /\bstuff\b/i,
+];
+
+/**
+ * Deterministically caps the LLM's self-reported confidence score based on
+ * objective signals extracted from the entity extraction step.
+ *
+ * The LLM is instructed to self-calibrate, but this provides a hard safety net
+ * so that structurally ambiguous inputs can never score above their quality band.
+ *
+ * Band ceilings:
+ *   0.15 — one or more entity is null
+ *   0.30 — goal is present but matches a vagueness pattern
+ *   1.00 — no structural defect detected; LLM score is accepted as-is
+ */
+function capConfidenceScore(
+  llmScore: number,
+  entities: EntityExtraction,
+): { score: number; cappedBy: string | null } {
+  // Band 1: null entity
+  if (entities.actor === null || entities.goal === null || entities.value === null) {
+    const capped = Math.min(llmScore, 0.15);
+    return { score: capped, cappedBy: "NULL_ENTITY" };
+  }
+
+  // Band 2: goal is vague / non-actionable
+  const goalIsVague = VAGUE_GOAL_PATTERNS.some((re) => re.test(entities.goal ?? ""));
+  if (goalIsVague) {
+    const capped = Math.min(llmScore, 0.30);
+    return { score: capped, cappedBy: "VAGUE_GOAL" };
+  }
+
+  return { score: llmScore, cappedBy: null };
+}
+
 // ─── Prompt loader ────────────────────────────────────────────────────────────
 
 async function loadPrompt(filename: string): Promise<string> {
@@ -213,6 +266,31 @@ export async function runPipeline(rawInput: string): Promise<PipelineResult> {
   // Step 2 — generate story + metadata
   const story = await generateStory(entities);
 
+  // Step 2b — deterministically cap the LLM's self-reported confidence score
+  // based on objective entity quality signals (null fields, vague goals).
+  const { score: calibratedScore, cappedBy } = capConfidenceScore(
+    story.confidence_score,
+    entities,
+  );
+
+  const calibratedFlags = cappedBy
+    ? [...new Set([...story.flags, cappedBy])]
+    : story.flags;
+
+  if (cappedBy) {
+    console.log(
+      JSON.stringify({
+        level: "warn",
+        source: "pipeline",
+        step: "confidence_calibration",
+        timestamp: new Date().toISOString(),
+        llm_score: story.confidence_score,
+        calibrated_score: calibratedScore,
+        cap_reason: cappedBy,
+      }),
+    );
+  }
+
   // Step 3 — generate acceptance criteria
   const criteria = await generateAcceptanceCriteria(story.story_body);
 
@@ -223,7 +301,7 @@ export async function runPipeline(rawInput: string): Promise<PipelineResult> {
     priority: story.priority,
     story_points: story.story_points,
     labels: story.labels,
-    confidence_score: story.confidence_score,
-    flags: story.flags,
+    confidence_score: calibratedScore,
+    flags: calibratedFlags,
   };
 }
