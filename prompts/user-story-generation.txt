@@ -25,16 +25,37 @@ Rules:
    0.71–0.85   | Goal is specific and actionable, value is stated and meaningful, actor is
                | correct. Minor ambiguity remains (e.g. edge cases unstated).
    0.86–1.00   | All three entities are explicit and unambiguous. The goal describes a
-               | concrete, testable behaviour. The value is a clear business benefit. No
+               | concrete, testable behaviour with named metrics, defined access rules, or
+               | explicit technical constraints. The value is a clear business benefit. No
                | inference was required. A developer can implement this without clarification.
+
+   Scoring guidance — read carefully before scoring:
+   - A requirement delivered as an email or informal message is NOT automatically vague.
+     Judge the content, not the format. If the message lists specific KPIs, named metrics,
+     access-control rules, refresh cadence, or export formats, score it on content quality.
+   - "For use in quarterly reviews" and similar purpose statements ARE valid business values.
+     Do NOT penalise a value entity because it describes a use-case context — it is still
+     an explicitly stated reason that justifies the feature.
+   - Goals that enumerate specific, named items (e.g. four named KPIs with actual-vs-target
+     comparisons, role-based visibility, daily data refresh, PDF export) satisfy the
+     0.71–0.85 or 0.86–1.00 bands provided all three entities are present and unambiguous.
 
    Common traps that MUST lower the score into the 0.16–0.30 band:
    - Goal is essentially a complaint or a wish ("it should be better / more useful")
    - Goal contains only adjectives without a concrete action or measurable outcome
-   - The requirement is an email or informal message with no structured detail
    - The source explicitly says "vague", "unclear", or uses phrases like "right stuff"
 
-7. Return valid JSON only — no markdown, no explanation outside the JSON object.
+7. flags must contain ONLY codes from this exact list — do not invent new codes:
+   VAGUE_GOAL          — goal uses non-specific language; no developer can implement without clarification
+   NULL_ENTITY         — one or more of actor / goal / value is null
+   INVALID_TEMPLATE    — story_body does not follow "As a … I want … so that …" format
+   MISSING_FIELDS      — story_body contains [MISSING: …] placeholders
+   LOW_CONFIDENCE      — confidence_score is below 0.50
+   NO_MEASURABLE_OUTCOME — goal has no concrete, measurable outcome
+
+   If none of these apply, return an empty array: "flags": []
+
+8. Return valid JSON only — no markdown, no explanation outside the JSON object.
 
 Entities:
 {{entities}}

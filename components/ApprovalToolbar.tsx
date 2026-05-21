@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, XCircle, RefreshCw, Loader2 } from "lucide-react";
+import { CheckCircle, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase";
 import type { StoryStatus } from "@/types";
@@ -27,12 +27,6 @@ const statusConfig: Record<
     nextStatus: "needs_changes",
     icon: RefreshCw,
     variant: "outline",
-  },
-  reject: {
-    label: "Reject",
-    nextStatus: "needs_changes",
-    icon: XCircle,
-    variant: "destructive",
   },
 };
 
@@ -127,21 +121,6 @@ export function ApprovalToolbar({ storyId, currentStatus, onStatusChange }: Appr
             <RefreshCw className="h-3.5 w-3.5" />
           )}
           Request Changes
-        </Button>
-
-        <Button
-          size="sm"
-          variant={statusConfig.reject.variant}
-          onClick={() => handleAction("reject")}
-          disabled={!!loading}
-          className="gap-1.5"
-        >
-          {loading === "reject" ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <XCircle className="h-3.5 w-3.5" />
-          )}
-          Reject
         </Button>
       </div>
     </div>

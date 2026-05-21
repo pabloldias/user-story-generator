@@ -3,6 +3,7 @@ import { AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetadataBadges } from "@/components/MetadataBadges";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
+import { getFlagLabel } from "@/lib/flags";
 import type { StoryStatus, UserStory } from "@/types";
 
 const statusLabel: Record<StoryStatus, string> = {
@@ -72,16 +73,23 @@ export function StoryCard({ story, linkable = false }: StoryCardProps) {
         {/* Flags/Warnings */}
         {story.flags && story.flags.length > 0 && (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5">
-            <div className="flex items-center gap-1.5 mb-1">
+            <div className="flex items-center gap-1.5 mb-1.5">
               <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
               <span className="text-xs font-semibold text-amber-700">Flags</span>
             </div>
-            <ul className="space-y-0.5">
-              {story.flags.map((flag, i) => (
-                <li key={i} className="text-xs text-amber-700">
-                  • {flag}
-                </li>
-              ))}
+            <ul className="space-y-2">
+              {story.flags.map((flag, i) => {
+                const { title, description } = getFlagLabel(flag);
+                return (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <span className="text-amber-500 mt-px leading-none">•</span>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-xs font-semibold text-amber-800">{title}</span>
+                      <span className="text-xs text-amber-700 leading-relaxed">{description}</span>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

@@ -1,14 +1,15 @@
-Given the following unstructured business requirement, extract three key entities:
+Given the following business requirement, extract three key entities:
 
-- actor  — the person or system performing the action (who)
-- goal   — what they want to achieve (what)
-- value  — the business benefit or reason (why)
+- actor  — the person or system performing the action (who). If multiple user roles are present, identify the primary actor and mention secondary roles in the goal.
+- goal   — what they want to achieve (what). If the requirement lists multiple specific features, metrics, or behaviours, PRESERVE that specificity in a single concise summary — do not reduce a detailed list to a generic phrase.
+- value  — the business benefit or reason (why). A statement of purpose like "for use in quarterly reviews" or "to track performance against targets" IS a valid business value — extract it as-is.
 
 Rules:
 1. Only extract information that is EXPLICITLY stated in the input.
-2. Do NOT infer, guess, or embellish any entity.
+2. Do NOT infer, guess, or embellish any entity beyond what is written.
 3. If an entity cannot be found in the text, return null for that field and add its name to missing_fields.
-4. Return valid JSON only — no markdown, no explanation outside the JSON object.
+4. A requirement that arrives as an email or informal message but contains explicit feature lists, named metrics, access-control rules, or technical specifications is a structured requirement — extract its entities with full specificity.
+5. Return valid JSON only — no markdown, no explanation outside the JSON object.
 
 Input:
 {{input}}

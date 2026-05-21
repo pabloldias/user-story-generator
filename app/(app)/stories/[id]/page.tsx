@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase-server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetadataBadges } from "@/components/MetadataBadges";
 import { ConfidenceIndicator } from "@/components/ConfidenceIndicator";
 import { ApprovalToolbar } from "@/components/ApprovalToolbar";
+import { RejectAndRegenerateDialog } from "@/components/RejectAndRegenerateDialog";
 import { JiraExportButton } from "@/components/JiraExportButton";
 import { ExportButton } from "@/components/ExportButton";
 import { StoryEditor } from "@/components/StoryEditor";
-import type { UserStory } from "@/types";
+import { getFlagLabel } from "@/lib/flags";
+import type { UserStory, Requirement } from "@/types";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -34,6 +36,14 @@ export default async function StoryDetailPage({ params }: Props) {
   if (!story) notFound();
 
   const s = story as UserStory;
+
+  const { data: requirement } = await supabase
+    .from("requirements")
+    .select("id, raw_input")
+    .eq("id", s.requirement_id)
+    .single();
+
+  const req = requirement as Pick<Requirement, "id" | "raw_input"> | null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -84,8 +94,14 @@ export default async function StoryDetailPage({ params }: Props) {
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Approval</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-3">
               <ApprovalToolbar storyId={s.id} currentStatus={s.status} />
+              {req && (
+                <RejectAndRegenerateDialog
+                  requirementId={req.id}
+                  rawInput={req.raw_input}
+                />
+              )}
             </CardContent>
           </Card>
 
@@ -111,15 +127,24 @@ export default async function StoryDetailPage({ params }: Props) {
           {s.flags && s.flags.length > 0 && (
             <Card className="border-amber-200 bg-amber-50">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-amber-700">Flags & Warnings</CardTitle>
+                <CardTitle className="text-sm text-amber-700">Flags &amp; Warnings</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-1">
-                  {s.flags.map((flag, i) => (
-                    <li key={i} className="text-xs text-amber-700">
-                      • {flag}
-                    </li>
-                  ))}
+                <ul className="space-y-3">
+                  {s.flags.map((flag, i) => {
+                    const { title, description } = getFlagLabel(flag);
+                    return (
+                      <li key={i} className="flex items-start gap-2">
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-xs font-semibold text-amber-800">{title}</span>
+                          <span className="text-xs text-amber-700 leading-relaxed">
+                            {description}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </CardContent>
             </Card>

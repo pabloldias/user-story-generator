@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { StoryCard } from "@/components/StoryCard";
 import { BulkApprovalToolbar } from "@/components/BulkApprovalToolbar";
 import { ExportButton } from "@/components/ExportButton";
-import { RejectAndRegenerateDialog } from "@/components/RejectAndRegenerateDialog";
 import type { Requirement, UserStory } from "@/types";
 
 interface Props {
@@ -104,13 +103,6 @@ export default async function RequirementDetailPage({ params }: Props) {
             </div>
           )}
 
-          {/* Reject & Regenerate — only available when stories have been generated */}
-          {req.status === "completed" && storyList.length > 0 && (
-            <RejectAndRegenerateDialog
-              requirementId={req.id}
-              rawInput={req.raw_input}
-            />
-          )}
         </div>
 
         {/* Right — Generated Stories */}
