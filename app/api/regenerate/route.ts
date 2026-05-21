@@ -94,62 +94,70 @@ REVIEWER FEEDBACK (must be addressed in the generated stories):
 ${feedback}`;
 
   try {
-    // ── 7. Re-run AI pipeline ──────────────────────────────────────────────
-    const pipelineResult = await runPipeline(enrichedInput);
+    // ── 7. Re-run AI pipeline (returns 1–5 PipelineResults) ───────────────
+    const pipelineResults = await runPipeline(enrichedInput);
 
-    // ── 8. Run guardrails ──────────────────────────────────────────────────
-    const guardrail = validateStory(pipelineResult);
+    // ── 8. Validate, insert, and log each story ────────────────────────────
+    const insertedStories: UserStory[] = [];
+    const allWarnings: string[] = [];
 
-    const storyStatus = guardrail.passed ? "draft" : "needs_changes";
-    const mergedFlags = [...new Set([...pipelineResult.flags, ...guardrail.flags])];
+    for (const pipelineResult of pipelineResults) {
+      const guardrail = validateStory(pipelineResult);
 
-    // ── 9. Insert new user story ───────────────────────────────────────────
-    const { data: story, error: storyInsertError } = await supabase
-      .from("user_stories")
-      .insert({
-        requirement_id,
-        title: pipelineResult.title,
-        story_body: pipelineResult.story_body,
-        acceptance_criteria: pipelineResult.acceptance_criteria,
-        priority: pipelineResult.priority,
-        story_points: pipelineResult.story_points,
-        labels: pipelineResult.labels,
-        confidence_score: pipelineResult.confidence_score,
-        status: storyStatus,
-        flags: mergedFlags,
-        jira_issue_key: null,
-      })
-      .select()
-      .single();
+      const storyStatus = guardrail.passed ? "draft" : "needs_changes";
+      const mergedFlags = [...new Set([...pipelineResult.flags, ...guardrail.flags])];
 
-    if (storyInsertError || !story) {
-      console.error("[regenerate] Failed to insert user story:", storyInsertError);
-      throw new Error("Failed to store regenerated story.");
+      const { data: story, error: storyInsertError } = await supabase
+        .from("user_stories")
+        .insert({
+          requirement_id,
+          title: pipelineResult.title,
+          story_body: pipelineResult.story_body,
+          acceptance_criteria: pipelineResult.acceptance_criteria,
+          priority: pipelineResult.priority,
+          story_points: pipelineResult.story_points,
+          labels: pipelineResult.labels,
+          confidence_score: pipelineResult.confidence_score,
+          status: storyStatus,
+          flags: mergedFlags,
+          jira_issue_key: null,
+        })
+        .select()
+        .single();
+
+      if (storyInsertError || !story) {
+        console.error("[regenerate] Failed to insert user story:", storyInsertError);
+        throw new Error("Failed to store regenerated story.");
+      }
+
+      if (guardrail.checks.length > 0) {
+        await supabase.from("guardrail_logs").insert(
+          guardrail.checks.map((c) => ({
+            story_id: (story as { id: string }).id,
+            rule: c.rule,
+            passed: c.passed,
+            details: c.details,
+          })),
+        );
+      }
+
+      insertedStories.push(story as UserStory);
+      if (guardrail.warnings.length > 0) {
+        allWarnings.push(...guardrail.warnings);
+      }
     }
 
-    // ── 10. Persist guardrail check results ────────────────────────────────
-    if (guardrail.checks.length > 0) {
-      await supabase.from("guardrail_logs").insert(
-        guardrail.checks.map((c) => ({
-          story_id: (story as { id: string }).id,
-          rule: c.rule,
-          passed: c.passed,
-          details: c.details,
-        })),
-      );
-    }
-
-    // ── 11. Mark requirement as completed ──────────────────────────────────
+    // ── 9. Mark requirement as completed ───────────────────────────────────
     await supabase
       .from("requirements")
       .update({ status: "completed" })
       .eq("id", requirement_id);
 
-    // ── 12. Return structured payload ──────────────────────────────────────
+    // ── 10. Return structured payload ──────────────────────────────────────
     const response: GenerateResponse = {
       requirement_id,
-      stories: [story as UserStory],
-      warnings: guardrail.warnings.length > 0 ? guardrail.warnings : undefined,
+      stories: insertedStories,
+      warnings: allWarnings.length > 0 ? allWarnings : undefined,
     };
 
     return NextResponse.json(response, { status: 201 });

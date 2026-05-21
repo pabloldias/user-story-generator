@@ -2,9 +2,11 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { callLLM, LLMError } from "./llm";
 import {
+  StorySplitSchema,
   EntityExtractionSchema,
   UserStoryGenerationSchema,
   AcceptanceCriteriaSchema,
+  type StorySplit,
   type EntityExtraction,
   type UserStoryGeneration,
   type AcceptanceCriterion,
@@ -99,11 +101,48 @@ function logLLMCall(
 // Each step gets a focused system role instruction so the model stays in
 // character for its part of the pipeline and is less likely to deviate.
 
+const SYSTEM_STORY_SPLITTING = `You are a senior Agile coach. Your only job is to determine whether a business requirement should be split into multiple independent user stories. You apply the single-responsibility principle strictly. You always return valid JSON.`;
+
 const SYSTEM_ENTITY_EXTRACTION = `You are a senior requirements analyst. Your only job is to extract entities from business requirements exactly as stated. You never infer, guess, or add information. You always return valid JSON.`;
 
 const SYSTEM_STORY_GENERATION = `You are a certified Agile product analyst. Your only job is to write Jira-formatted user stories from the provided entities. You never add information beyond what you are given. You always return valid JSON.`;
 
 const SYSTEM_ACCEPTANCE_CRITERIA = `You are a senior QA analyst. Your only job is to write testable Given/When/Then acceptance criteria derived strictly from the user story provided. You never invent requirements. You always return valid JSON.`;
+
+// ─── Step 0: Story Splitting ──────────────────────────────────────────────────
+
+/**
+ * Determines whether a raw requirement should be split into multiple
+ * independent sub-requirements. Returns the list of sub-requirements to
+ * process (either the original input unchanged, or 2–5 focused slices).
+ */
+export async function splitRequirement(rawInput: string): Promise<StorySplit> {
+  const prompt = await loadPrompt("story-splitting.txt");
+
+  const { content: raw, usage } = await callLLM(
+    prompt,
+    { input: rawInput },
+    { systemPrompt: SYSTEM_STORY_SPLITTING },
+  );
+
+  logLLMCall("story_splitting", raw, usage);
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new LLMError(`Story splitting returned invalid JSON: ${raw}`);
+  }
+
+  const result = StorySplitSchema.safeParse(parsed);
+  if (!result.success) {
+    throw new LLMError(
+      `Story splitting schema validation failed: ${result.error.message}`,
+    );
+  }
+
+  return result.data;
+}
 
 // ─── Step 1: Entity Extraction ────────────────────────────────────────────────
 
@@ -248,10 +287,10 @@ function serialiseAC(criteria: AcceptanceCriterion[]): string {
     .join("\n\n");
 }
 
-// ─── Pipeline orchestrator ────────────────────────────────────────────────────
+// ─── Single-requirement pipeline ─────────────────────────────────────────────
 
 /**
- * Runs the full 3-step AI pipeline sequentially:
+ * Runs the 3-step AI pipeline for a single, focused sub-requirement:
  * 1. Entity extraction
  * 2. User story generation (includes metadata)
  * 3. Acceptance criteria generation
@@ -259,9 +298,9 @@ function serialiseAC(criteria: AcceptanceCriterion[]): string {
  * Returns a `PipelineResult` ready to be validated by guardrails and stored
  * in the database.
  */
-export async function runPipeline(rawInput: string): Promise<PipelineResult> {
+async function runSinglePipeline(subInput: string): Promise<PipelineResult> {
   // Step 1 — extract entities
-  const entities = await extractEntities(rawInput);
+  const entities = await extractEntities(subInput);
 
   // Step 2 — generate story + metadata
   const story = await generateStory(entities);
@@ -304,4 +343,45 @@ export async function runPipeline(rawInput: string): Promise<PipelineResult> {
     confidence_score: calibratedScore,
     flags: calibratedFlags,
   };
+}
+
+// ─── Pipeline orchestrator ────────────────────────────────────────────────────
+
+/**
+ * Runs the full AI pipeline for a raw requirement:
+ *
+ * Step 0 — Story splitting: determines if the requirement should produce
+ *           multiple independent user stories (different actors / independent
+ *           features). Returns 1–5 focused sub-requirements.
+ *
+ * Steps 1–3 — For each sub-requirement: entity extraction → story generation
+ *             → acceptance criteria generation.
+ *
+ * Returns an array of `PipelineResult` objects (one per story). Single-story
+ * requirements return a one-element array so all callers can be uniform.
+ */
+export async function runPipeline(rawInput: string): Promise<PipelineResult[]> {
+  // Step 0 — split requirement into independent sub-requirements (if needed)
+  const split = await splitRequirement(rawInput);
+
+  console.log(
+    JSON.stringify({
+      level: "info",
+      source: "pipeline",
+      step: "story_splitting",
+      timestamp: new Date().toISOString(),
+      should_split: split.should_split,
+      story_count: split.sub_requirements.length,
+    }),
+  );
+
+  // Steps 1–3 — run the single-story pipeline for every sub-requirement.
+  // We process them sequentially to avoid hammering the LLM rate limit.
+  const results: PipelineResult[] = [];
+  for (const subInput of split.sub_requirements) {
+    const result = await runSinglePipeline(subInput);
+    results.push(result);
+  }
+
+  return results;
 }

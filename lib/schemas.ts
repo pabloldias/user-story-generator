@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+// ─── Story Splitting ──────────────────────────────────────────────────────────
+
+export const StorySplitSchema = z.object({
+  should_split: z.boolean(),
+  sub_requirements: z.array(z.string().min(1)).min(1).max(5),
+});
+
+export type StorySplit = z.infer<typeof StorySplitSchema>;
+
 // ─── Entity Extraction ────────────────────────────────────────────────────────
 
 export const EntityExtractionSchema = z.object({

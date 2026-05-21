@@ -1,0 +1,46 @@
+Analyse the business requirement below and determine whether it should be split into multiple independent user stories.
+
+A requirement should be split when it contains TWO OR MORE distinct actor/goal pairs that:
+- involve different primary actors (e.g. "sales rep" vs. "manager" vs. "system"), OR
+- describe independent features that can be designed, built, and tested separately without dependency on each other.
+
+A requirement should NOT be split when:
+- It describes a single feature with multiple implementation details or steps.
+- The additional actors are secondary to the same core goal (e.g. "notify the user AND the manager" is one goal with one outcome).
+- Splitting would produce stories that are too thin to stand alone as testable units.
+
+Rules:
+1. Only extract information EXPLICITLY stated in the input.
+2. Do NOT infer, guess, or add detail not present in the text.
+3. If the requirement does NOT need splitting, return a single-item array containing the full requirement text unchanged.
+4. If the requirement DOES need splitting, return one item per story.
+
+   CRITICAL: Every sub-requirement text MUST be a complete, self-contained description
+   that explicitly includes ALL THREE of the following — do not omit any:
+   a) WHO the actor is (e.g. "Sales reps", "Regional managers", "The system")
+   b) WHAT they want to do (the specific goal or feature, with all relevant details from the original)
+   c) WHY — the business reason or benefit (copy the value statement from the original if one is present;
+      if the original has no explicit value, derive it strictly from the stated context)
+
+   Bad sub-requirement (missing actor and value):
+     "Include a samples tab showing all disbursements with lot numbers and quantities."
+
+   Good sub-requirement (complete):
+     "Sales reps need to view a Samples tab on the HCP profile page that lists all sample
+      disbursements recorded against that physician, including lot numbers and quantities,
+      so that they have a complete record of what was distributed to each HCP."
+
+5. Maximum 5 sub-requirements. If more than 5 natural splits exist, merge the least distinct ones.
+6. Return valid JSON only — no markdown, no explanation outside the JSON object.
+
+Requirement:
+{{input}}
+
+Respond with this exact JSON structure:
+{
+  "should_split": true | false,
+  "sub_requirements": [
+    "<full self-contained sub-requirement text including actor, goal, and value>",
+    "<full self-contained sub-requirement text including actor, goal, and value>"
+  ]
+}

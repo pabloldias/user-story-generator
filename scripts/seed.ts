@@ -73,7 +73,7 @@ import("../lib/pipeline").then(async ({ runPipeline }) => {
 });
 
 async function main(
-  runPipeline: (input: string) => Promise<import("../lib/schemas").PipelineResult>,
+  runPipeline: (input: string) => Promise<import("../lib/schemas").PipelineResult[]>,
   validateStory: (
     story: import("../lib/schemas").PipelineResult
   ) => import("../lib/guardrails").GuardrailResult
@@ -175,64 +175,79 @@ async function main(
         requirementId = `dry-run-req-${mock.id}`;
       }
 
-      // Run pipeline
-      const result = await runPipeline(mock.raw_input);
+      // Run pipeline — may return multiple stories for complex requirements
+      const results = await runPipeline(mock.raw_input);
 
-      // Run guardrails
-      const guardrail = validateStory(result);
+      console.log(`    Stories: ${results.length}`);
 
-      const storyStatus = guardrail.passed ? "draft" : "needs_changes";
-      const mergedFlags = [...new Set([...result.flags, ...guardrail.flags])];
+      let reqHasWarning = false;
 
-      console.log(`    Title  : ${result.title}`);
-      console.log(`    Status : ${storyStatus}  |  Confidence: ${result.confidence_score.toFixed(2)}`);
-      console.log(`    Flags  : ${mergedFlags.length > 0 ? mergedFlags.join(", ") : "none"}`);
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const storyLabel = results.length > 1 ? ` [${i + 1}/${results.length}]` : "";
 
-      if (guardrail.warnings.length > 0) {
-        warned++;
-        for (const w of guardrail.warnings) {
-          console.log(`    ⚠️   ${w}`);
+        // Run guardrails
+        const guardrail = validateStory(result);
+
+        const storyStatus = guardrail.passed ? "draft" : "needs_changes";
+        const mergedFlags = [...new Set([...result.flags, ...guardrail.flags])];
+
+        console.log(`    Title${storyLabel}  : ${result.title}`);
+        console.log(`    Status${storyLabel} : ${storyStatus}  |  Confidence: ${result.confidence_score.toFixed(2)}`);
+        console.log(`    Flags${storyLabel}  : ${mergedFlags.length > 0 ? mergedFlags.join(", ") : "none"}`);
+
+        if (guardrail.warnings.length > 0) {
+          reqHasWarning = true;
+          for (const w of guardrail.warnings) {
+            console.log(`    ⚠️   ${w}`);
+          }
         }
+
+        if (!DRY_RUN) {
+          // Insert story
+          const { data: story, error: storyError } = await adminClient
+            .from("user_stories")
+            .insert({
+              requirement_id: requirementId,
+              title: result.title,
+              story_body: result.story_body,
+              acceptance_criteria: result.acceptance_criteria,
+              priority: result.priority,
+              story_points: result.story_points,
+              labels: result.labels,
+              confidence_score: result.confidence_score,
+              status: storyStatus,
+              flags: mergedFlags.length > 0 ? mergedFlags : null,
+              jira_issue_key: null,
+            })
+            .select("id")
+            .single();
+
+          if (storyError || !story) {
+            throw new Error(`Story insert failed: ${storyError?.message}`);
+          }
+
+          // Insert guardrail logs
+          if (guardrail.checks.length > 0) {
+            await adminClient.from("guardrail_logs").insert(
+              guardrail.checks.map((c) => ({
+                story_id: (story as { id: string }).id,
+                rule: c.rule,
+                passed: c.passed,
+                details: c.details,
+              }))
+            );
+          }
+        }
+      }
+
+      if (reqHasWarning) {
+        warned++;
       } else {
         passed++;
       }
 
       if (!DRY_RUN) {
-        // Insert story
-        const { data: story, error: storyError } = await adminClient
-          .from("user_stories")
-          .insert({
-            requirement_id: requirementId,
-            title: result.title,
-            story_body: result.story_body,
-            acceptance_criteria: result.acceptance_criteria,
-            priority: result.priority,
-            story_points: result.story_points,
-            labels: result.labels,
-            confidence_score: result.confidence_score,
-            status: storyStatus,
-            flags: mergedFlags.length > 0 ? mergedFlags : null,
-            jira_issue_key: null,
-          })
-          .select("id")
-          .single();
-
-        if (storyError || !story) {
-          throw new Error(`Story insert failed: ${storyError?.message}`);
-        }
-
-        // Insert guardrail logs
-        if (guardrail.checks.length > 0) {
-          await adminClient.from("guardrail_logs").insert(
-            guardrail.checks.map((c) => ({
-              story_id: (story as { id: string }).id,
-              rule: c.rule,
-              passed: c.passed,
-              details: c.details,
-            }))
-          );
-        }
-
         // Mark requirement completed
         await adminClient
           .from("requirements")
