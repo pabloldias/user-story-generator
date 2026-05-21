@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase-server";
+import { authenticateRequest } from "@/lib/mcp-auth";
 import { buildJiraPayload, createJiraIssue, JiraError } from "@/lib/jira";
 import type { UserStory, JiraExportResponse } from "@/types";
 
@@ -14,15 +14,10 @@ const JiraCreateRequestSchema = z.object({
 // ─── POST /api/jira/create ────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const supabase = await createClient();
-
   // ── 1. Authenticate ──────────────────────────────────────────────────────
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { supabase, user, error: authError } = await authenticateRequest(req);
 
-  if (authError || !user) {
+  if (authError || !user || !supabase) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
